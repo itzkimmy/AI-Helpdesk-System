@@ -1,6 +1,6 @@
-# Beyond2U AI-Powered IT Helpdesk Ticket System
+# AI Helpdesk System
 
-A production-grade, secure, self-hosted Final Year Project (FYP4112) IT Helpdesk System built for **Beyond2U Sdn Bhd**.
+A production-grade, secure, self-hosted Final Year Project (FYP4112) IT Helpdesk System.
 
 ![Python](https://img.shields.io/badge/Python-3.12%2B-blue)
 ![Flask](https://img.shields.io/badge/Flask-3.0.0-green)
@@ -30,8 +30,8 @@ A production-grade, secure, self-hosted Final Year Project (FYP4112) IT Helpdesk
 ### 2. Installation
 ```bash
 # Clone repository
-git clone https://github.com/beyond2u/helpdesk.git
-cd helpdesk
+git clone https://github.com/itzkimmy/AI-Helpdesk-System.git
+cd AI-Helpdesk-System
 
 # Create virtual environment
 python -m venv .venv
