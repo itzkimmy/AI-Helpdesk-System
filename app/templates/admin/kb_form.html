@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }} — Beyond2U Admin{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-9">
+        <div class="page-header d-flex align-items-center justify-content-between mb-4">
+            <div>
+                <h1 class="h3 mb-1 font-heading fw-bold" style="color: var(--hd-text);">{{ title }}</h1>
+                <p class="text-muted small mb-0">Write clear, actionable steps to help users resolve issues independently</p>
+            </div>
+            <a href="{{ url_for('admin.kb_list') }}" class="btn btn-outline-secondary btn-sm">
+                &larr; Back to Articles
+            </a>
+        </div>
+
+        <div class="card border-0 shadow-sm rounded-4 p-4" style="background: var(--hd-surface); border: 1px solid var(--hd-border) !important;">
+            <div class="card-body">
+                <form method="POST" novalidate>
+                    {{ form.hidden_tag() }}
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-8">
+                            {{ form.title.label(class="form-label small fw-semibold") }}
+                            {{ form.title(class="form-control form-control-lg" + (" is-invalid" if form.title.errors else "")) }}
+                            {% for e in form.title.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+                            <div class="form-text">A descriptive question or title, e.g., "How to Configure Beyond2U VPN on Windows"</div>
+                        </div>
+
+                        <div class="col-md-4">
+                            {{ form.category.label(class="form-label small fw-semibold") }}
+                            {{ form.category(class="form-select form-select-lg" + (" is-invalid" if form.category.errors else "")) }}
+                            {% for e in form.category.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+                            <div class="form-text">Matching the 6 IT ticket categories</div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.summary.label(class="form-label small fw-semibold") }}
+                        {{ form.summary(class="form-control" + (" is-invalid" if form.summary.errors else "")) }}
+                        {% for e in form.summary.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+                        <div class="form-text">A concise 1-2 sentence overview shown in deflection popups and search cards.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        {{ form.content.label(class="form-label small fw-semibold") }}
+                        {{ form.content(class="form-control font-monospace" + (" is-invalid" if form.content.errors else ""), style="min-height: 250px; font-size: 0.95rem;") }}
+                        {% for e in form.content.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+                        <div class="form-text">Provide step-by-step instructions. Plain text formatting and line breaks will be preserved.</div>
+                    </div>
+
+                    <div class="mb-4">
+                        {{ form.tags.label(class="form-label small fw-semibold") }}
+                        {{ form.tags(class="form-control" + (" is-invalid" if form.tags.errors else "")) }}
+                        {% for e in form.tags.errors %}<div class="invalid-feedback">{{ e }}</div>{% endfor %}
+                        <div class="form-text">Comma-separated keywords to maximize search hit rate during ticket deflection (e.g. <code>wifi, ssid, wireless, connect, internet</code>).</div>
+                    </div>
+
+                    <div class="mb-4 p-3 rounded-3 border" style="background: rgba(2, 136, 209, 0.04); border-color: var(--hd-border) !important;">
+                        <div class="form-check form-switch">
+                            {{ form.is_published(class="form-check-input", id="publishSwitch") }}
+                            <label class="form-check-label fw-semibold" for="publishSwitch">
+                                Publish article immediately
+                            </label>
+                            <div class="form-text mb-0">When published, this article will appear in search results and the ticket deflection panel.</div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="{{ url_for('admin.kb_list') }}" class="btn btn-outline-secondary px-4">Cancel</a>
+                        {{ form.submit(class="btn btn-primary px-4 fw-semibold") }}
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

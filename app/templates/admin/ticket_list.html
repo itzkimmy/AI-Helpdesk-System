@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block title %}All Tickets — Beyond2U IT Helpdesk{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="h3 mb-1">All Tickets</h1>
+        <p class="text-muted small mb-0">Search, filter, and manage tickets across the organization</p>
+    </div>
+    <a href="{{ url_for('admin.export_csv') }}" class="btn btn-outline-primary btn-sm">Export CSV</a>
+</div>
+
+<div class="filter-bar">
+    <form method="GET" class="row g-2 align-items-end" id="ticket-filter-form">
+        <div class="col-12 col-sm-6 col-md-3">
+            <label for="f-status" class="form-label small fw-semibold">Status</label>
+            <select name="status" id="f-status" class="form-select form-select-sm" onchange="this.form.submit()">
+                <option value="">All Statuses</option>
+                {% for s in statuses %}<option value="{{ s.value }}" {{ 'selected' if status_filter == s.value }}>{{ s.value }}</option>{% endfor %}
+            </select>
+        </div>
+        <div class="col-12 col-sm-6 col-md-3">
+            <label for="f-cat" class="form-label small fw-semibold">Category</label>
+            <select name="category" id="f-cat" class="form-select form-select-sm" onchange="this.form.submit()">
+                <option value="">All Categories</option>
+                {% for c in categories %}<option value="{{ c.value }}" {{ 'selected' if category_filter == c.value }}>{{ c.value }}</option>{% endfor %}
+            </select>
+        </div>
+        <div class="col-12 col-sm-6 col-md-3">
+            <label for="f-pri" class="form-label small fw-semibold">Priority</label>
+            <select name="priority" id="f-pri" class="form-select form-select-sm" onchange="this.form.submit()">
+                <option value="">All Priorities</option>
+                {% for p in priorities %}<option value="{{ p.value }}" {{ 'selected' if priority_filter == p.value }}>{{ p.value }}</option>{% endfor %}
+            </select>
+        </div>
+        {% if status_filter or category_filter or priority_filter %}
+        <div class="col-12 col-sm-6 col-md-3">
+            <a href="{{ url_for('admin.ticket_list') }}" class="btn btn-sm btn-outline-secondary w-100">
+                Clear Filters
+            </a>
+        </div>
+        {% endif %}
+    </form>
+</div>
+
+{% if tickets %}
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-helpdesk mb-0" aria-label="All tickets">
+                <thead>
+                    <tr>
+                        <th>Ticket</th>
+                        <th>Subject</th>
+                        <th>Category</th>
+                        <th>Priority</th>
+                        <th>Status</th>
+                        <th>SLA</th>
+                        <th class="d-none d-lg-table-cell">Assignee</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for t in tickets %}
+                <tr>
+                    <td class="fw-bold font-mono text-primary">{{ t.ticket_number }}</td>
+                    <td class="fw-semibold">{{ t.subject | truncate(35) }}</td>
+                    <td class="small"><span class="badge bg-secondary">{{ t.category.value if t.category else '—' }}</span></td>
+                    <td>{% if t.priority %}<span class="badge-status badge-{{ t.priority.value|lower }}">{{ t.priority.value }}</span>{% else %}<span class="text-muted">—</span>{% endif %}</td>
+                    <td>{% set sc = t.status.value|lower|replace(' ','-') %}<span class="badge-status badge-{{ sc }}">{{ t.status.value }}</span></td>
+                    <td>{% if t.sla_state %}{% set slc = t.sla_state.value|lower|replace(' ','-') %}<span class="badge-status badge-sla-{{ slc }}">{{ t.sla_state.value }}</span>{% else %}<span class="text-muted">—</span>{% endif %}</td>
+                    <td class="d-none d-lg-table-cell small text-muted">{{ t.assignee.full_name if t.assignee else 'Unassigned' }}</td>
+                    <td><a href="{{ url_for('admin.ticket_detail', ticket_number=t.ticket_number) }}" class="btn btn-sm btn-outline-primary">Manage</a></td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% if pagination.pages > 1 %}
+<nav aria-label="Pagination" class="mt-4">
+    <ul class="pagination justify-content-center">
+        <li class="page-item {{ 'disabled' if not pagination.has_prev }}">
+            <a class="page-link" href="{{ url_for('admin.ticket_list', page=pagination.prev_num, status=status_filter, category=category_filter, priority=priority_filter) }}">Prev</a>
+        </li>
+        {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+        {% if p %}
+        <li class="page-item {{ 'active' if p == pagination.page }}">
+            <a class="page-link" href="{{ url_for('admin.ticket_list', page=p, status=status_filter, category=category_filter, priority=priority_filter) }}">{{ p }}</a>
+        </li>
+        {% else %}
+        <li class="page-item disabled"><span class="page-link">…</span></li>
+        {% endif %}
+        {% endfor %}
+        <li class="page-item {{ 'disabled' if not pagination.has_next }}">
+            <a class="page-link" href="{{ url_for('admin.ticket_list', page=pagination.next_num, status=status_filter, category=category_filter, priority=priority_filter) }}">Next</a>
+        </li>
+    </ul>
+</nav>
+{% endif %}
+{% else %}
+<div class="empty-state py-5">
+    <h3 class="h5 fw-bold">No tickets found</h3>
+    <p class="text-muted small">No tickets match the selected filter criteria.</p>
+</div>
+{% endif %}
+{% endblock %}

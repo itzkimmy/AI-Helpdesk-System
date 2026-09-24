@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}My Tickets — Beyond2U IT Helpdesk{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="h3 mb-1">My Tickets</h1>
+        <p class="text-muted small mb-0">Track and view history of all support tickets submitted by you</p>
+    </div>
+    <a href="{{ url_for('client.submit_ticket') }}" class="btn btn-primary shadow-sm">New Ticket</a>
+</div>
+
+<!-- Filter bar -->
+<div class="filter-bar">
+    <form method="GET" class="row g-2 align-items-end" id="client-filter-form">
+        <div class="col-12 col-sm-6 col-md-4">
+            <label for="filter-status" class="form-label small fw-semibold">Filter by Status</label>
+            <select name="status" id="filter-status" class="form-select form-select-sm" onchange="this.form.submit()">
+                <option value="">All Statuses</option>
+                <option value="New" {{ 'selected' if status_filter == 'New' }}>New</option>
+                <option value="Assigned" {{ 'selected' if status_filter == 'Assigned' }}>Assigned</option>
+                <option value="In Progress" {{ 'selected' if status_filter == 'In Progress' }}>In Progress</option>
+                <option value="Pending Client" {{ 'selected' if status_filter == 'Pending Client' }}>Pending Client</option>
+                <option value="Resolved" {{ 'selected' if status_filter == 'Resolved' }}>Resolved</option>
+                <option value="Closed" {{ 'selected' if status_filter == 'Closed' }}>Closed</option>
+            </select>
+        </div>
+        {% if status_filter %}
+        <div class="col-12 col-sm-6 col-md-2">
+            <a href="{{ url_for('client.ticket_list') }}" class="btn btn-sm btn-outline-secondary w-100">Clear Filter</a>
+        </div>
+        {% endif %}
+    </form>
+</div>
+
+<!-- Ticket table -->
+{% if tickets %}
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-helpdesk mb-0" aria-label="Your tickets">
+                <thead>
+                    <tr>
+                        <th scope="col">Ticket</th>
+                        <th scope="col">Subject</th>
+                        <th scope="col">Category</th>
+                        <th scope="col">Priority</th>
+                        <th scope="col">Status</th>
+                        <th scope="col" class="d-none d-md-table-cell">Created</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ticket in tickets %}
+                    <tr>
+                        <td>
+                            <a href="{{ url_for('client.ticket_detail', ticket_number=ticket.ticket_number) }}"
+                               class="fw-bold font-mono text-primary text-decoration-none">{{ ticket.ticket_number }}</a>
+                        </td>
+                        <td class="fw-semibold">{{ ticket.subject | truncate(40) }}</td>
+                        <td class="small"><span class="badge bg-secondary">{{ ticket.category.value if ticket.category else '—' }}</span></td>
+                        <td>
+                            {% if ticket.priority %}
+                            <span class="badge-status badge-{{ ticket.priority.value | lower }}">{{ ticket.priority.value }}</span>
+                            {% else %}<span class="text-muted">—</span>{% endif %}
+                        </td>
+                        <td>
+                            {% set sc = ticket.status.value | lower | replace(' ', '-') %}
+                            <span class="badge-status badge-{{ sc }}">{{ ticket.status.value }}</span>
+                        </td>
+                        <td class="d-none d-md-table-cell text-muted small font-mono">
+                            {{ to_local_time(ticket.created_at).strftime('%d %b %Y, %H:%M') if ticket.created_at else '—' }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Pagination -->
+{% if pagination.pages > 1 %}
+<nav aria-label="Ticket list pagination" class="mt-4">
+    <ul class="pagination justify-content-center">
+        <li class="page-item {{ 'disabled' if not pagination.has_prev }}">
+            <a class="page-link" href="{{ url_for('client.ticket_list', page=pagination.prev_num, status=status_filter) }}">Previous</a>
+        </li>
+        {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+        {% if p %}
+        <li class="page-item {{ 'active' if p == pagination.page }}">
+            <a class="page-link" href="{{ url_for('client.ticket_list', page=p, status=status_filter) }}">{{ p }}</a>
+        </li>
+        {% else %}
+        <li class="page-item disabled"><span class="page-link">…</span></li>
+        {% endif %}
+        {% endfor %}
+        <li class="page-item {{ 'disabled' if not pagination.has_next }}">
+            <a class="page-link" href="{{ url_for('client.ticket_list', page=pagination.next_num, status=status_filter) }}">Next</a>
+        </li>
+    </ul>
+</nav>
+{% endif %}
+
+{% else %}
+<div class="empty-state py-5">
+    <h3 class="h5 fw-bold">No tickets found</h3>
+    <p class="text-muted small">{% if status_filter %}No tickets match the selected status filter.{% else %}You haven't submitted any IT support tickets yet.{% endif %}</p>
+    <a href="{{ url_for('client.submit_ticket') }}" class="btn btn-primary mt-2">Submit Your First Ticket</a>
+</div>
+{% endif %}
+{% endblock %}

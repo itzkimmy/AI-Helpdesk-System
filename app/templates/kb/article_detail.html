@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+
+{% block title %}{{ article.title }} — Knowledge Base{% endblock %}
+
+{% block content %}
+<div class="container py-3">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{{ url_for('main.index') }}" class="text-decoration-none">Home</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('kb.index') }}" class="text-decoration-none">Knowledge Base</a></li>
+            <li class="breadcrumb-item"><a href="{{ url_for('kb.index', category=article.category.value) }}" class="text-decoration-none">{{ article.category.value }}</a></li>
+            <li class="breadcrumb-item active text-truncate" style="max-width: 300px;" aria-current="page">{{ article.title }}</li>
+        </ol>
+    </nav>
+
+    <div class="row g-4">
+        <!-- Main Article Content -->
+        <div class="col-lg-8">
+            <article class="card border-0 shadow-sm rounded-4 p-4 p-md-5"
+                     style="background: var(--hd-surface); border: 1px solid var(--hd-border) !important;">
+                <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+                    <span class="badge rounded-pill px-3 py-2 fw-semibold" style="background: rgba(23, 105, 170, 0.15); color: var(--hd-primary-light);">
+                        {{ article.category.value }}
+                    </span>
+                    <span class="text-muted small">
+                        Updated {{ to_local_time(article.updated_at).strftime('%b %d, %Y') if to_local_time(article.updated_at) else '' }}
+                    </span>
+                    <span class="text-muted small">&bull;</span>
+                    <span class="text-muted small">👁️ {{ article.view_count }} views</span>
+                </div>
+
+                <h1 class="h2 fw-bold font-heading mb-3" style="color: var(--hd-text);">
+                    {{ article.title }}
+                </h1>
+
+                {% if article.summary %}
+                <div class="p-3 mb-4 rounded-3 border-start border-4 border-primary" style="background: rgba(2, 136, 209, 0.05);">
+                    <p class="mb-0 text-muted fw-medium">{{ article.summary }}</p>
+                </div>
+                {% endif %}
+
+                <!-- Content Body -->
+                <div class="article-body mb-4" style="line-height: 1.7; color: var(--hd-text); white-space: pre-line; font-size: 1.05rem;">
+{{ article.content }}
+                </div>
+
+                {% if article.tags %}
+                <div class="pt-3 border-top mb-4 d-flex flex-wrap gap-1 align-items-center" style="border-color: var(--hd-border) !important;">
+                    <span class="text-muted small me-2">Tags:</span>
+                    {% for tag in article.tags.split(',') %}
+                    <span class="badge bg-light text-secondary border small px-2 py-1">#{{ tag.strip() }}</span>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <!-- Was this helpful? Interactive Widget -->
+                <div class="card rounded-3 p-3 text-center border mt-3" id="votingCard"
+                     style="background: rgba(23, 105, 170, 0.04); border-color: var(--hd-border) !important;">
+                    <h6 class="fw-bold mb-2 font-heading" style="color: var(--hd-text);">Was this article helpful?</h6>
+                    <p class="text-muted small mb-3">Your feedback helps us improve our automated suggestions.</p>
+                    
+                    <div class="d-flex justify-content-center gap-3" id="voteButtons">
+                        <button type="button" class="btn btn-outline-success px-4 rounded-pill d-flex align-items-center gap-2" onclick="castVote(true)">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>
+                            Yes, it helped! (<span id="helpfulCount">{{ article.helpful_count }}</span>)
+                        </button>
+                        <button type="button" class="btn btn-outline-danger px-4 rounded-pill d-flex align-items-center gap-2" onclick="castVote(false)">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17"></path></svg>
+                            No, I still need help (<span id="notHelpfulCount">{{ article.not_helpful_count }}</span>)
+                        </button>
+                    </div>
+
+                    <div id="voteThanks" class="d-none mt-2">
+                        <span class="badge bg-success px-3 py-2 rounded-pill fw-semibold">
+                            ✅ Thank you for your feedback! (<span id="helpfulRatio">{{ article.helpful_ratio }}</span>% found this helpful)
+                        </span>
+                    </div>
+                </div>
+            </article>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- Need More Help Card -->
+            <div class="card border-0 shadow-sm rounded-4 p-4 mb-4"
+                 style="background: var(--hd-surface); border: 1px solid var(--hd-border) !important;">
+                <h5 class="fw-bold font-heading mb-2" style="color: var(--hd-text);">Didn't solve your issue?</h5>
+                <p class="text-muted small mb-3">
+                    If this guide didn't resolve your problem, submit a ticket to our IT support team and an assigned technician will assist you.
+                </p>
+                {% if current_user.is_authenticated and not current_user.is_admin and not current_user.is_technician %}
+                <a href="{{ url_for('client.submit_ticket') }}" class="btn btn-primary w-100 rounded-pill fw-semibold">
+                    Submit a Ticket &rarr;
+                </a>
+                {% endif %}
+            </div>
+
+            <!-- Related Articles -->
+            {% if related %}
+            <div class="card border-0 shadow-sm rounded-4 p-4"
+                 style="background: var(--hd-surface); border: 1px solid var(--hd-border) !important;">
+                <h6 class="fw-bold font-heading mb-3" style="color: var(--hd-text);">Related Articles</h6>
+                <div class="list-group list-group-flush">
+                    {% for r in related %}
+                    <a href="{{ url_for('kb.article_detail', slug=r.slug) }}"
+                       class="list-group-item list-group-item-action border-0 px-0 py-2 d-flex flex-column"
+                       style="background: transparent;">
+                        <span class="fw-semibold text-truncate" style="color: var(--hd-text);">{{ r.title }}</span>
+                        <span class="text-muted small">👍 {{ r.helpful_count }} helpful</span>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    function castVote(isHelpful) {
+        const url = "{{ url_for('kb.vote_article', article_id=article.id) }}";
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token() }}'
+            },
+            body: JSON.stringify({ helpful: isHelpful })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('helpfulCount').textContent = data.helpful_count;
+                document.getElementById('notHelpfulCount').textContent = data.not_helpful_count;
+                document.getElementById('helpfulRatio').textContent = data.ratio;
+                document.getElementById('voteButtons').classList.add('d-none');
+                document.getElementById('voteThanks').classList.remove('d-none');
+            }
+        })
+        .catch(err => console.error('Voting error:', err));
+    }
+</script>
+{% endblock %}

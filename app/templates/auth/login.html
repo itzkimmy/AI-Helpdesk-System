@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Sign In — Beyond2U IT Helpdesk{% endblock %}
+
+{% block content %}
+<div class="auth-container my-n4 mx-n4">
+    <div class="auth-card" style="max-width: 500px;">
+        <div class="auth-logo">
+            <img src="{{ url_for('static', filename='images/beyond2u_logo.jpg') }}"
+                alt="Beyond2U — Your Choice of Worldwide Support"
+                style="height: 200px; width: auto; object-fit: contain; display: block; margin: 0 auto 1rem auto;">
+            <p class="text-muted small mt-1 mb-0">Sign in to manage and track your support tickets</p>
+        </div>
+
+        <form method="POST" action="{{ url_for('auth.login') }}" id="login-form" class="mt-4" novalidate>
+            {{ form.hidden_tag() }}
+
+            <div class="mb-3">
+                {{ form.email.label(class="form-label") }}
+                {{ form.email(class="form-control" + (" is-invalid" if form.email.errors else ""), id="login-email",
+                autocomplete="email", placeholder="name@company.com") }}
+                {% for error in form.email.errors %}
+                <div class="invalid-feedback">{{ error }}</div>
+                {% endfor %}
+            </div>
+
+            <div class="mb-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    {{ form.password.label(class="form-label mb-0") }}
+                </div>
+                <div class="password-wrapper mt-1">
+                    {{ form.password(class="form-control" + (" is-invalid" if form.password.errors else ""),
+                    id="login-password", autocomplete="current-password", placeholder="••••••••") }}
+                    <button type="button" class="btn-password-toggle" aria-label="Show or hide password"
+                        onclick="togglePassword('login-password', this)">
+                        <svg class="eye-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                            <circle cx="12" cy="12" r="3" />
+                        </svg>
+                    </button>
+                </div>
+                {% for error in form.password.errors %}
+                <div class="invalid-feedback d-block">{{ error }}</div>
+                {% endfor %}
+            </div>
+
+            <div class="mb-4 form-check">
+                {{ form.remember_me(class="form-check-input", id="login-remember") }}
+                {{ form.remember_me.label(class="form-check-label small text-muted fw-semibold") }}
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100 py-2.5 shadow-sm" id="login-submit">
+                Sign In to Account
+            </button>
+        </form>
+
+        <div class="text-center mt-4 pt-2 border-top">
+            <small class="text-muted">
+                Need an account? Please contact your <strong>IT Administrator</strong> to request access.
+            </small>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    function togglePassword(fieldId, btn) {
+        var field = document.getElementById(fieldId);
+        if (!field) return;
+        var isHidden = field.type === 'password';
+        field.type = isHidden ? 'text' : 'password';
+
+        var eyeOpen = '<svg class="eye-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+        var eyeOff = '<svg class="eye-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+
+        btn.innerHTML = isHidden ? eyeOff : eyeOpen;
+        btn.setAttribute('aria-label', isHidden ? 'Hide password' : 'Show password');
+    }
+</script>
+{% endblock %}

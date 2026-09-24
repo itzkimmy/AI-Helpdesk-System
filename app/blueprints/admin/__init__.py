@@ -1,0 +1,7 @@
+"""Admin blueprint — dashboard, user/skill/SLA management, overrides, reports."""
+
+from flask import Blueprint
+
+admin_bp = Blueprint('admin', __name__, template_folder='../../templates/admin')
+
+from app.blueprints.admin import routes  # noqa: E402, F401

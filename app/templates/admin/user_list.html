@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% block title %}Users — Beyond2U IT Helpdesk{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="h3 mb-1">User Management</h1>
+        <p class="text-muted small mb-0">View, create, and manage user accounts and access roles</p>
+    </div>
+    <a href="{{ url_for('admin.create_user') }}" class="btn btn-primary btn-sm shadow-sm">Create User</a>
+</div>
+
+<div class="filter-bar">
+    <form method="GET" class="row g-2 align-items-end">
+        <div class="col-8 col-md-4">
+            <label for="f-role" class="form-label small fw-semibold">Filter by Role</label>
+            <select name="role" id="f-role" class="form-select form-select-sm">
+                <option value="">All Roles</option>
+                <option value="client" {{ 'selected' if role_filter=='client' }}>Client</option>
+                <option value="technician" {{ 'selected' if role_filter=='technician' }}>Technician</option>
+                <option value="admin" {{ 'selected' if role_filter=='admin' }}>Administrator</option>
+            </select>
+        </div>
+        <div class="col-4 col-md-2 d-flex gap-2">
+            <button type="submit" class="btn btn-sm btn-primary w-100">Filter</button>
+            {% if role_filter %}
+            <a href="{{ url_for('admin.user_list') }}" class="btn btn-sm btn-outline-secondary">Clear</a>
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-helpdesk mb-0 align-middle" aria-label="Users">
+                <thead>
+                    <tr>
+                        <th>User</th>
+                        <th>Role</th>
+                        <th>Company & Department</th>
+                        <th>Contact</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for u in users %}
+                    <tr>
+                        <td>
+                            <div class="fw-bold">{{ u.full_name }}</div>
+                            <div class="font-mono small text-muted">@{{ u.username }}</div>
+                        </td>
+                        <td>
+                            {% if u.is_admin %}
+                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-2.5 py-1">Admin</span>
+                            {% elif u.is_technician %}
+                            <span class="badge bg-info-subtle text-info border border-info-subtle rounded-pill px-2.5 py-1">Technician</span>
+                            {% else %}
+                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2.5 py-1">Client</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="fw-semibold small text-truncate" style="max-width: 220px;">
+                                {{ u.company_name or (u.organization.name if u.organization else 'Beyond2U Sdn Bhd') }}
+                            </div>
+                            <div class="text-muted small text-truncate" style="max-width: 220px; font-size: 0.78rem;">
+                                {% if u.job_title %}<span class="text-secondary fw-medium">{{ u.job_title }}</span> &bull; {% endif %}{{ u.department or 'General' }}
+                            </div>
+                        </td>
+                        <td>
+                            <div class="small">{{ u.email }}</div>
+                            {% if u.phone_number %}
+                            <div class="text-muted font-mono small" style="font-size: 0.78rem;">{{ u.phone_number }}</div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if u.is_active %}
+                            <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill">Active</span>
+                            {% else %}
+                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill">Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="d-flex gap-1 align-items-center">
+                                <a href="{{ url_for('admin.edit_user', user_id=u.id) }}" class="btn btn-sm btn-outline-primary py-1 px-2" title="Edit user profile">Edit</a>
+                                {% if u.id != current_user.id %}
+                                    {% if u.is_active %}
+                                    <form method="POST" action="{{ url_for('admin.deactivate_user', user_id=u.id) }}" class="d-inline">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="btn btn-sm btn-outline-warning py-1 px-2" onclick="return confirm('Deactivate {{ u.username }}?')">Deactivate</button>
+                                    </form>
+                                    {% else %}
+                                    <form method="POST" action="{{ url_for('admin.deactivate_user', user_id=u.id) }}" class="d-inline">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="btn btn-sm btn-outline-success py-1 px-2" onclick="return confirm('Re-activate {{ u.username }}?')">Activate</button>
+                                    </form>
+                                    {% endif %}
+                                    <form method="POST" action="{{ url_for('admin.delete_user', user_id=u.id) }}" class="d-inline">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="btn btn-sm btn-danger py-1 px-2" onclick="return confirm('Are you sure you want to permanently delete account \'{{ u.username }}\' ({{ u.email }})? This action cannot be undone.')">Delete</button>
+                                    </form>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% if pagination.pages > 1 %}
+<nav aria-label="Pagination" class="mt-4">
+    <ul class="pagination justify-content-center">
+        <li class="page-item {{ 'disabled' if not pagination.has_prev }}">
+            <a class="page-link" href="{{ url_for('admin.user_list', page=pagination.prev_num, role=role_filter) }}">Prev</a>
+        </li>
+        {% for p in pagination.iter_pages() %}
+        {% if p %}
+        <li class="page-item {{ 'active' if p == pagination.page }}">
+            <a class="page-link" href="{{ url_for('admin.user_list', page=p, role=role_filter) }}">{{ p }}</a>
+        </li>
+        {% else %}
+        <li class="page-item disabled"><span class="page-link">…</span></li>
+        {% endif %}
+        {% endfor %}
+        <li class="page-item {{ 'disabled' if not pagination.has_next }}">
+            <a class="page-link" href="{{ url_for('admin.user_list', page=pagination.next_num, role=role_filter) }}">Next</a>
+        </li>
+    </ul>
+</nav>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    container_name: helpdesk_web
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_CONFIG=production
+      - SECRET_KEY=${SECRET_KEY}
+      - DATABASE_URL=sqlite:////app/instance/helpdesk.db
+      - DISPLAY_TIMEZONE=Asia/Kuala_Lumpur
+    volumes:
+      - helpdesk_data:/app/instance
+      - helpdesk_models:/app/app/ml/models
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  scheduler:
+    build: .
+    container_name: helpdesk_scheduler
+    restart: unless-stopped
+    command: python scheduler.py
+    environment:
+      - FLASK_CONFIG=production
+      - DATABASE_URL=sqlite:////app/instance/helpdesk.db
+      - SLA_SCAN_INTERVAL_SECONDS=60
+      - DISPLAY_TIMEZONE=Asia/Kuala_Lumpur
+    volumes:
+      - helpdesk_data:/app/instance
+      - helpdesk_models:/app/app/ml/models
+    depends_on:
+      - web
+
+volumes:
+  helpdesk_data:
+  helpdesk_models:
+

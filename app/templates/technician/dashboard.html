@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}My Queue — Beyond2U IT Helpdesk{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="h3 mb-1">My Assigned Queue</h1>
+        <p class="text-muted small mb-0">Active tickets requiring your attention, ordered by priority & SLA urgency</p>
+    </div>
+</div>
+
+<!-- KPI Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="kpi-card kpi-card--open">
+            <div class="kpi-value">{{ active_count }}</div>
+            <div class="kpi-label">Active Queue</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="kpi-card kpi-card--breached">
+            <div class="kpi-value">{{ breached_count }}</div>
+            <div class="kpi-label">SLA Breached</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="kpi-card" style="border-left: 4px solid var(--hd-success);">
+            <div class="kpi-value" style="color: var(--hd-success);">{{ resolved_count }}</div>
+            <div class="kpi-label">Resolved</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="kpi-card">
+            <div class="kpi-value" style="color: var(--hd-text-muted);">{{ total_assigned }}</div>
+            <div class="kpi-label">Total Assigned</div>
+        </div>
+    </div>
+</div>
+
+<!-- Active tickets queue -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h2 class="h6 mb-0">Active Tickets Queue</h2>
+        <span class="badge bg-primary rounded-pill px-3">{{ active_count }} active</span>
+    </div>
+    <div class="card-body p-0">
+        {% if tickets %}
+        <div class="table-responsive">
+            <table class="table table-helpdesk mb-0" aria-label="Your assigned active tickets, ordered by urgency">
+                <thead>
+                    <tr>
+                        <th scope="col">Ticket</th>
+                        <th scope="col">Subject</th>
+                        <th scope="col">Priority</th>
+                        <th scope="col">SLA</th>
+                        <th scope="col">Status</th>
+                        <th scope="col" class="d-none d-md-table-cell">Deadline</th>
+                        <th scope="col">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ticket in tickets %}
+                    <tr>
+                        <td class="fw-bold font-mono text-primary">{{ ticket.ticket_number }}</td>
+                        <td class="fw-semibold">{{ ticket.subject | truncate(35) }}</td>
+                        <td>
+                            {% if ticket.priority %}
+                            <span class="badge-status badge-{{ ticket.priority.value | lower }}">{{ ticket.priority.value }}</span>
+                            {% else %}<span class="text-muted">—</span>{% endif %}
+                        </td>
+                        <td>
+                            {% if ticket.sla_state %}
+                            {% set sla_class = ticket.sla_state.value | lower | replace(' ', '-') %}
+                            <span class="badge-status badge-sla-{{ sla_class }}">{{ ticket.sla_state.value }}</span>
+                            {% else %}<span class="text-muted">—</span>{% endif %}
+                        </td>
+                        <td>
+                            {% set sc = ticket.status.value | lower | replace(' ', '-') %}
+                            <span class="badge-status badge-{{ sc }}">{{ ticket.status.value }}</span>
+                        </td>
+                        <td class="d-none d-md-table-cell text-muted small font-mono">
+                            {% if ticket.sla_deadline %}
+                            {{ to_local_time(ticket.sla_deadline).strftime('%d %b, %H:%M') }}
+                            {% else %}—{% endif %}
+                        </td>
+                        <td>
+                            <a href="{{ url_for('technician.ticket_action', ticket_number=ticket.ticket_number) }}"
+                               class="btn btn-sm btn-outline-primary">Action</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state py-5">
+            <h3 class="h5 fw-bold">Queue is clear</h3>
+            <p class="text-muted small">No active tickets are currently assigned to you.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

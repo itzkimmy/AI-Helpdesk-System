@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — Beyond2U IT Helpdesk{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="h3 mb-1">Welcome back, {{ current_user.first_name }}</h1>
+        <p class="text-muted small mb-0">Track your IT support tickets and request technical assistance</p>
+    </div>
+    <a href="{{ url_for('client.submit_ticket') }}" class="btn btn-primary shadow-sm" id="btn-new-ticket">
+        Submit New Ticket
+    </a>
+</div>
+
+<!-- KPI Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-4">
+        <div class="kpi-card kpi-card--open">
+            <div class="kpi-value" aria-label="{{ total }} total tickets">{{ total }}</div>
+            <div class="kpi-label">Total Tickets</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4">
+        <div class="kpi-card kpi-card--unassigned">
+            <div class="kpi-value" aria-label="{{ open_count }} open tickets">{{ open_count }}</div>
+            <div class="kpi-label">Active / Open</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-4">
+        <div class="kpi-card" style="border-left: 4px solid var(--hd-success);">
+            <div class="kpi-value" style="color: var(--hd-success);" aria-label="{{ resolved_count }} resolved tickets">{{ resolved_count }}</div>
+            <div class="kpi-label">Resolved</div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Tickets -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h2 class="h6 mb-0">My Recent Tickets</h2>
+        <a href="{{ url_for('client.ticket_list') }}" class="btn btn-sm btn-outline-primary">View All</a>
+    </div>
+    <div class="card-body p-0">
+        {% if tickets %}
+        <div class="table-responsive">
+            <table class="table table-helpdesk mb-0" aria-label="Your recent tickets">
+                <thead>
+                    <tr>
+                        <th scope="col">Ticket</th>
+                        <th scope="col">Subject</th>
+                        <th scope="col">Status</th>
+                        <th scope="col">Priority</th>
+                        <th scope="col" class="d-none d-md-table-cell">Created</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ticket in tickets %}
+                    <tr>
+                        <td>
+                            <a href="{{ url_for('client.ticket_detail', ticket_number=ticket.ticket_number) }}"
+                               class="fw-bold font-mono text-decoration-none text-primary">
+                                {{ ticket.ticket_number }}
+                            </a>
+                        </td>
+                        <td class="fw-semibold">{{ ticket.subject | truncate(50) }}</td>
+                        <td>
+                            {% set status_class = ticket.status.value | lower | replace(' ', '-') %}
+                            <span class="badge-status badge-{{ status_class }}">{{ ticket.status.value }}</span>
+                        </td>
+                        <td>
+                            {% if ticket.priority %}
+                            <span class="badge-status badge-{{ ticket.priority.value | lower }}">{{ ticket.priority.value }}</span>
+                            {% else %}
+                            <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                        <td class="d-none d-md-table-cell text-muted small font-mono">
+                            {{ to_local_time(ticket.created_at).strftime('%d %b %Y, %H:%M') if ticket.created_at else '—' }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state py-5">
+            <h3 class="h5 fw-bold">No tickets yet</h3>
+            <p class="text-muted small">Submit your first IT support ticket to get started.</p>
+            <a href="{{ url_for('client.submit_ticket') }}" class="btn btn-primary">Submit a Ticket</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

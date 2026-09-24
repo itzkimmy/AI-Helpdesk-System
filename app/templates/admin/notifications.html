@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+{% block title %}Notifications — Beyond2U IT Helpdesk{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="h3 mb-1">Notifications</h1>
+        <p class="text-muted small mb-0">
+            System alerts for SLA events and ticket actions
+            {% if unread_total > 0 %}
+            — <span class="fw-semibold text-danger">{{ unread_total }} unread</span>
+            {% endif %}
+        </p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap align-items-center">
+        <!-- Filter toggle -->
+        <a href="{{ url_for('admin.notification_list') }}{% if not filter_unread %}{% else %}{% endif %}"
+           class="btn btn-sm {{ 'btn-outline-primary' if filter_unread else 'btn-primary' }}">
+            All
+        </a>
+        <a href="{{ url_for('admin.notification_list', unread=1) }}"
+           class="btn btn-sm {{ 'btn-primary' if filter_unread else 'btn-outline-primary' }}">
+            Unread only
+            {% if unread_total > 0 %}
+            <span class="badge bg-danger ms-1">{{ unread_total }}</span>
+            {% endif %}
+        </a>
+
+        {% if unread_total > 0 %}
+        <form method="POST" action="{{ url_for('admin.notification_mark_all_read') }}" class="d-inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-sm btn-outline-secondary">
+                ✓ Mark all as read
+            </button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Notification list card -->
+<div class="card">
+    {% if not notifications %}
+    <div class="card-body text-center py-5">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+             class="text-muted mb-3" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+        </svg>
+        <p class="text-muted mb-0">No notifications{% if filter_unread %} unread{% endif %}.</p>
+    </div>
+    {% else %}
+    <div class="list-group list-group-flush">
+        {% for n in notifications %}
+        {% set icon_map = {
+            'warning': '⚠',
+            'danger':  '🔴',
+            'check':   '✅',
+            'user':    '👤',
+            'bell':    '🔔',
+        } %}
+        {% set icon_sym = icon_map.get(n.icon, '🔔') %}
+
+        <div class="list-group-item border-0 notif-item {% if not n.is_read %}notif-item--unread{% endif %}"
+             id="notif-{{ n.id }}" style="padding: 1rem 1.25rem;">
+            <div class="d-flex gap-3 align-items-start">
+                <!-- Icon -->
+                <span class="fs-5 flex-shrink-0 mt-1" aria-hidden="true">{{ icon_sym }}</span>
+
+                <!-- Content -->
+                <div class="flex-grow-1 overflow-hidden">
+                    <div class="small lh-sm mb-1" style="color: var(--hd-text);">
+                        {{ n.message }}
+                    </div>
+                    <div class="d-flex align-items-center gap-3 flex-wrap">
+                        {% if n.ticket %}
+                        <a href="{{ url_for('admin.ticket_detail', ticket_number=n.ticket.ticket_number) }}"
+                           class="small fw-semibold text-decoration-none"
+                           style="color: var(--hd-primary-light);">
+                            {{ n.ticket.ticket_number }}
+                        </a>
+                        {% endif %}
+                        <span class="badge rounded-pill
+                            {% if n.notification_type.value == 'sla_breached' %}bg-danger-subtle text-danger
+                            {% elif n.notification_type.value == 'sla_approaching' %}bg-warning-subtle text-warning
+                            {% elif n.notification_type.value == 'ticket_resolved' %}bg-success-subtle text-success
+                            {% elif n.notification_type.value == 'ticket_assigned' %}bg-info-subtle text-info
+                            {% else %}bg-secondary-subtle text-secondary{% endif %}"
+                            style="font-size: 0.65rem;">
+                            {{ n.notification_type.value.replace('_', ' ').title() }}
+                        </span>
+                        <span class="text-muted" style="font-size: 0.72rem;">
+                            {{ to_local_time(n.created_at).strftime('%d %b %Y, %H:%M') if n.created_at else '' }}
+                        </span>
+                        {% if n.is_read %}
+                        <span class="text-muted" style="font-size: 0.68rem;">Read</span>
+                        {% else %}
+                        <span class="badge bg-primary-subtle text-primary" style="font-size: 0.65rem;">New</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Mark read action -->
+                {% if not n.is_read %}
+                <button class="btn btn-sm btn-outline-secondary flex-shrink-0 btn-mark-read"
+                        data-id="{{ n.id }}"
+                        title="Mark as read"
+                        style="font-size: 0.72rem; padding: 0.25rem 0.6rem;">
+                    Mark read
+                </button>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    {% if pagination.pages > 1 %}
+    <div class="card-footer border-top d-flex justify-content-between align-items-center" style="border-color: var(--hd-border) !important;">
+        <span class="small text-muted">
+            Page {{ pagination.page }} of {{ pagination.pages }}
+            ({{ pagination.total }} total)
+        </span>
+        <nav aria-label="Notification pagination">
+            <ul class="pagination pagination-sm mb-0">
+                {% if pagination.has_prev %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('admin.notification_list', page=pagination.prev_num, unread=1 if filter_unread else 0) }}">
+                        &laquo;
+                    </a>
+                </li>
+                {% endif %}
+                {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                {% if p %}
+                <li class="page-item {% if p == pagination.page %}active{% endif %}">
+                    <a class="page-link" href="{{ url_for('admin.notification_list', page=p, unread=1 if filter_unread else 0) }}">{{ p }}</a>
+                </li>
+                {% else %}
+                <li class="page-item disabled"><span class="page-link">…</span></li>
+                {% endif %}
+                {% endfor %}
+                {% if pagination.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('admin.notification_list', page=pagination.next_num, unread=1 if filter_unread else 0) }}">
+                        &raquo;
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Mark individual notification as read via AJAX
+document.querySelectorAll('.btn-mark-read').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+        var id = btn.dataset.id;
+        fetch('{{ url_for("admin.notification_mark_read", notif_id=0) }}'.replace('/0/', '/' + id + '/'), {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token() }}',
+                'Content-Type': 'application/json',
+            },
+        }).then(function(r) { return r.json(); })
+        .then(function() {
+            var row = document.getElementById('notif-' + id);
+            if (row) {
+                row.classList.remove('notif-item--unread');
+                var badge = row.querySelector('.badge.bg-primary-subtle');
+                if (badge) badge.remove();
+                btn.remove();
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

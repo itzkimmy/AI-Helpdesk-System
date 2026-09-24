@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Edit SLA Policy — Beyond2U IT Helpdesk{% endblock %}
+{% block content %}
+<div class="row justify-content-center"><div class="col-lg-6">
+<div class="page-header"><h1>Edit SLA: {{ policy.priority }}</h1></div>
+<div class="card"><div class="card-body p-4">
+<form method="POST" novalidate>{{ form.hidden_tag() }}
+<div class="mb-3">{{ form.resolution_hours.label(class="form-label") }}{{ form.resolution_hours(class="form-control") }}{% for e in form.resolution_hours.errors %}<div class="invalid-feedback d-block">{{ e }}</div>{% endfor %}</div>
+<div class="mb-3">{{ form.warning_threshold_pct.label(class="form-label") }}{{ form.warning_threshold_pct(class="form-control") }}{% for e in form.warning_threshold_pct.errors %}<div class="invalid-feedback d-block">{{ e }}</div>{% endfor %}</div>
+<div class="d-flex gap-2"><button type="submit" class="btn btn-primary">Save</button><a href="{{ url_for('admin.sla_policy_list') }}" class="btn btn-outline-secondary">Cancel</a></div>
+</form></div></div></div></div>
+{% endblock %}

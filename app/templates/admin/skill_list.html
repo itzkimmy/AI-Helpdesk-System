@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% block title %}Skill Management — Beyond2U IT Helpdesk{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="h3 mb-1">Skill & Skill Matrix Management</h1>
+        <p class="text-muted small mb-0">Manage skill categories and assign qualified technicians for automated AI routing</p>
+    </div>
+    <a href="{{ url_for('admin.create_skill') }}" class="btn btn-primary btn-sm shadow-sm">New Skill</a>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-helpdesk mb-0" aria-label="Skills and technician assignments">
+                <thead>
+                    <tr>
+                        <th scope="col">Skill</th>
+                        <th scope="col">Category</th>
+                        <th scope="col" class="d-none d-md-table-cell">Description</th>
+                        <th scope="col">Assigned Technicians</th>
+                        <th scope="col">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in skills %}
+                    <tr>
+                        {# Skill name #}
+                        <td class="fw-bold align-middle">{{ s.name }}</td>
+
+                        {# Category badge #}
+                        <td class="align-middle">
+                            <span class="badge bg-secondary">{{ s.category }}</span>
+                        </td>
+
+                        {# Description — hidden on small screens #}
+                        <td class="small text-muted align-middle d-none d-md-table-cell">
+                            {{ s.description or '—' }}
+                        </td>
+
+                        {# Assigned technicians with proficiency + remove button #}
+                        <td class="align-middle">
+                            {% if s.technicians %}
+                                <div class="d-flex flex-wrap gap-1">
+                                {% for ts in s.technicians %}
+                                    <div class="d-flex align-items-center gap-1 border rounded-pill px-3 py-1 bg-body-tertiary shadow-sm">
+                                        <span class="small fw-bold">{{ ts.technician.full_name }}</span>
+                                        <span class="badge bg-primary rounded-pill ms-1" title="Proficiency level">{{ ts.proficiency }}/5</span>
+                                        <form method="POST"
+                                              action="{{ url_for('admin.remove_skill_assignment', skill_id=s.id, tech_id=ts.technician_id) }}"
+                                              class="d-inline"
+                                              onsubmit="return confirm('Remove {{ ts.technician.full_name }} from {{ s.name }}?')">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <button type="submit"
+                                                    class="btn btn-link btn-sm p-0 ms-1 text-danger border-0 text-decoration-none"
+                                                    title="Remove assignment"
+                                                    aria-label="Remove {{ ts.technician.full_name }} from {{ s.name }}">Remove</button>
+                                        </form>
+                                    </div>
+                                {% endfor %}
+                                </div>
+                            {% else %}
+                                <span class="text-muted small">No technicians assigned</span>
+                            {% endif %}
+                        </td>
+
+                        {# Assign action — collapsible inline form #}
+                        <td class="align-middle">
+                            <button class="btn btn-sm btn-outline-primary"
+                                    type="button"
+                                    data-bs-toggle="collapse"
+                                    data-bs-target="#assign-{{ s.id }}"
+                                    aria-expanded="false"
+                                    aria-controls="assign-{{ s.id }}">
+                                Assign Tech
+                            </button>
+                        </td>
+                    </tr>
+
+                    {# Collapsible assign form row #}
+                    <tr>
+                        <td colspan="5" class="p-0 border-0">
+                            <div class="collapse" id="assign-{{ s.id }}">
+                                <div class="p-3 bg-body-tertiary border-top">
+                                    <form method="POST"
+                                          action="{{ url_for('admin.assign_skill', skill_id=s.id) }}"
+                                          class="row g-2 align-items-end">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                                        <div class="col-md-5">
+                                            <label for="tech-{{ s.id }}" class="form-label small fw-semibold mb-1">
+                                                Select Technician
+                                            </label>
+                                            <select name="technician_id"
+                                                    id="tech-{{ s.id }}"
+                                                    class="form-select form-select-sm"
+                                                    required>
+                                                <option value="">-- Select technician --</option>
+                                                {% for tech in technicians %}
+                                                <option value="{{ tech.id }}">
+                                                    {{ tech.full_name }} ({{ tech.username }})
+                                                </option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+
+                                        <div class="col-md-3">
+                                            <label for="prof-{{ s.id }}" class="form-label small fw-semibold mb-1">
+                                                Proficiency Level
+                                            </label>
+                                            <select name="proficiency"
+                                                    id="prof-{{ s.id }}"
+                                                    class="form-select form-select-sm">
+                                                <option value="1">1 – Beginner</option>
+                                                <option value="2">2 – Basic</option>
+                                                <option value="3" selected>3 – Intermediate</option>
+                                                <option value="4">4 – Advanced</option>
+                                                <option value="5">5 – Expert</option>
+                                            </select>
+                                        </div>
+
+                                        <div class="col-md-2">
+                                            <button type="submit" class="btn btn-primary btn-sm w-100">
+                                                Assign
+                                            </button>
+                                        </div>
+
+                                        <div class="col-md-2">
+                                            <button type="button"
+                                                    class="btn btn-outline-secondary btn-sm w-100"
+                                                    data-bs-toggle="collapse"
+                                                    data-bs-target="#assign-{{ s.id }}">
+                                                Cancel
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

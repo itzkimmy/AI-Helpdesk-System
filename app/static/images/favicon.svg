@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <filter id="subtle-shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.15" />
+    </filter>
+  </defs>
+  <g fill="#FCCB02" filter="url(#subtle-shadow)">
+    <!-- 8 Symmetrical Dots forming the Beyond2U 'O' Emblem -->
+    <circle cx="256" cy="96" r="44" />
+    <circle cx="369.14" cy="142.86" r="44" />
+    <circle cx="416" cy="256" r="44" />
+    <circle cx="369.14" cy="369.14" r="44" />
+    <circle cx="256" cy="416" r="44" />
+    <circle cx="142.86" cy="369.14" r="44" />
+    <circle cx="96" cy="256" r="44" />
+    <circle cx="142.86" cy="142.86" r="44" />
+  </g>
+</svg>

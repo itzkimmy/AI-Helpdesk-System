@@ -1,0 +1,275 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard — Beyond2U IT Helpdesk{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="h3 mb-1">Administrator Dashboard</h1>
+        <p class="text-muted small mb-0">System overview, AI routing statistics, and workload metrics</p>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="{{ url_for('admin.export_csv') }}" class="btn btn-outline-primary btn-sm">Export CSV</a>
+        <a href="{{ url_for('admin.ticket_list') }}" class="btn btn-primary btn-sm">View All Tickets</a>
+    </div>
+</div>
+
+<!-- KPI Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3">
+        <div class="kpi-card kpi-card--open">
+            <div class="kpi-value" aria-label="{{ open_count }} open tickets">{{ open_count }}</div>
+            <div class="kpi-label">Open Tickets</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="kpi-card kpi-card--unassigned">
+            <div class="kpi-value" aria-label="{{ unassigned_count }} unassigned tickets">{{ unassigned_count }}</div>
+            <div class="kpi-label">Unassigned</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="kpi-card kpi-card--approaching">
+            <div class="kpi-value" aria-label="{{ approaching_count }} approaching SLA">{{ approaching_count }}</div>
+            <div class="kpi-label">Approaching SLA</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="kpi-card kpi-card--breached">
+            <div class="kpi-value" aria-label="{{ breached_count }} SLA breached">{{ breached_count }}</div>
+            <div class="kpi-label">SLA Breached</div>
+        </div>
+    </div>
+</div>
+
+<!-- Overall Ticket Volume Row -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-6">
+        <div class="card border-0 shadow-sm rounded-3 p-3" style="background: var(--hd-surface); border: 1px solid var(--hd-border) !important;">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <div class="text-muted small fw-semibold">Total Tickets</div>
+                    <div class="h4 fw-bold mb-0 mt-1" style="color: var(--hd-text);">{{ total_tickets }}</div>
+                    <div class="small text-muted">All-time volume</div>
+                </div>
+                <div class="p-2 rounded-circle bg-body-secondary text-secondary">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-6">
+        <div class="card border-0 shadow-sm rounded-3 p-3" style="background: var(--hd-surface); border: 1px solid var(--hd-border) !important;">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <div class="text-muted small fw-semibold">Resolved Tickets</div>
+                    <div class="h4 fw-bold mb-0 mt-1 text-info">{{ resolved_count }}</div>
+                    <div class="small text-muted">Completed resolutions</div>
+                </div>
+                <div class="p-2 rounded-circle bg-info-subtle text-info">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row -->
+<div class="row g-3 mb-4">
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h2 class="h6 mb-0">Tickets by Category</h2>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="categoryChart" aria-label="Distribution of tickets by category" role="img"></canvas>
+                </div>
+                <!-- Table alternative for accessibility -->
+                <details class="mt-3">
+                    <summary class="small text-muted fw-semibold">View as table</summary>
+                    <table class="table table-sm mt-2" aria-label="Tickets by category data">
+                        <thead><tr><th>Category</th><th>Count</th></tr></thead>
+                        <tbody>
+                            {% for cat, count in category_data %}
+                            <tr><td>{{ cat }}</td><td>{{ count }}</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </details>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header"><h2 class="h6 mb-0">Tickets by Priority</h2></div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="priorityChart" aria-label="Distribution of tickets by priority" role="img"></canvas>
+                </div>
+                <details class="mt-3">
+                    <summary class="small text-muted fw-semibold">View as table</summary>
+                    <table class="table table-sm mt-2" aria-label="Tickets by priority data">
+                        <thead><tr><th>Priority</th><th>Count</th></tr></thead>
+                        <tbody>
+                            {% for pri, count in priority_data %}
+                            <tr><td>{{ pri }}</td><td>{{ count }}</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </details>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Workload Distribution -->
+{% if workload_data %}
+<div class="row g-3 mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header"><h2 class="h6 mb-0">Technician Workload (Active Tickets)</h2></div>
+            <div class="card-body">
+                <div class="chart-container" style="max-height: 220px;">
+                    <canvas id="workloadChart" aria-label="Active ticket distribution across technicians" role="img"></canvas>
+                </div>
+                <details class="mt-3">
+                    <summary class="small text-muted fw-semibold">View as table</summary>
+                    <table class="table table-sm mt-2">
+                        <thead><tr><th>Technician</th><th>Active Tickets</th></tr></thead>
+                        <tbody>
+                            {% for name, count in workload_data %}
+                            <tr><td>{{ name }}</td><td>{{ count }}</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </details>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Recent Tickets -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h2 class="h6 mb-0">Recent Tickets</h2>
+        <span class="badge bg-secondary rounded-pill px-3">{{ total_tickets }} total</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-helpdesk mb-0" aria-label="Recent tickets across all users">
+                <thead>
+                    <tr>
+                        <th scope="col">Ticket</th>
+                        <th scope="col">Subject</th>
+                        <th scope="col">Category</th>
+                        <th scope="col">Priority</th>
+                        <th scope="col">Status</th>
+                        <th scope="col">SLA</th>
+                        <th scope="col" class="d-none d-lg-table-cell">Assignee</th>
+                        <th scope="col">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ticket in recent_tickets %}
+                    <tr>
+                        <td class="fw-bold font-mono text-primary">{{ ticket.ticket_number }}</td>
+                        <td class="fw-semibold">{{ ticket.subject | truncate(30) }}</td>
+                        <td class="small"><span class="badge bg-secondary">{{ ticket.category.value if ticket.category else '—' }}</span></td>
+                        <td>
+                            {% if ticket.priority %}
+                            <span class="badge-status badge-{{ ticket.priority.value | lower }}">{{ ticket.priority.value }}</span>
+                            {% else %}<span class="text-muted">—</span>{% endif %}
+                        </td>
+                        <td>
+                            {% set sc = ticket.status.value | lower | replace(' ', '-') %}
+                            <span class="badge-status badge-{{ sc }}">{{ ticket.status.value }}</span>
+                        </td>
+                        <td>
+                            {% if ticket.sla_state %}
+                            {% set sla_class = ticket.sla_state.value | lower | replace(' ', '-') %}
+                            <span class="badge-status badge-sla-{{ sla_class }}">{{ ticket.sla_state.value }}</span>
+                            {% else %}<span class="text-muted">—</span>{% endif %}
+                        </td>
+                        <td class="d-none d-lg-table-cell small text-muted">{{ ticket.assignee.full_name if ticket.assignee else 'Unassigned' }}</td>
+                        <td>
+                            <a href="{{ url_for('admin.ticket_detail', ticket_number=ticket.ticket_number) }}"
+                               class="btn btn-sm btn-outline-primary">Manage</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/chart.min.js') }}"></script>
+<script>
+(function() {
+    var colors = {
+        blue: '#3b82f6', indigo: '#6366f1', cyan: '#06b6d4',
+        green: '#10b981', yellow: '#f59e0b', orange: '#f97316',
+        red: '#ef4444', purple: '#8b5cf6', pink: '#ec4899',
+        teal: '#14b8a6', lime: '#84cc16', amber: '#f59e0b'
+    };
+    var palette = Object.values(colors);
+
+    // Category chart
+    var catLabels = {{ category_data | map(attribute=0) | list | tojson }};
+    var catValues = {{ category_data | map(attribute=1) | list | tojson }};
+
+    new Chart(document.getElementById('categoryChart'), {
+        type: 'doughnut',
+        data: {
+            labels: catLabels,
+            datasets: [{ data: catValues, backgroundColor: palette.slice(0, catLabels.length), borderWidth: 2, borderColor: 'transparent' }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+    });
+
+    // Priority chart
+    var priLabels = {{ priority_data | map(attribute=0) | list | tojson }};
+    var priValues = {{ priority_data | map(attribute=1) | list | tojson }};
+
+    var priColors = priLabels.map(function(l) {
+        if (l === 'Critical') return colors.red;
+        if (l === 'High') return colors.orange;
+        if (l === 'Medium') return colors.yellow;
+        if (l === 'Low') return colors.green;
+        return colors.purple;
+    });
+
+    new Chart(document.getElementById('priorityChart'), {
+        type: 'doughnut',
+        data: {
+            labels: priLabels,
+            datasets: [{ data: priValues, backgroundColor: priColors, borderWidth: 2, borderColor: 'transparent' }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+    });
+
+    // Workload chart
+    var wlCanvas = document.getElementById('workloadChart');
+    if (wlCanvas) {
+        var wlLabels = {{ workload_data | map(attribute=0) | list | tojson }};
+        var wlValues = {{ workload_data | map(attribute=1) | list | tojson }};
+
+        new Chart(wlCanvas, {
+            type: 'bar',
+            data: {
+                labels: wlLabels,
+                datasets: [{ label: 'Active Tickets', data: wlValues, backgroundColor: colors.indigo, borderRadius: 8 }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
+                plugins: { legend: { display: false } }
+            }
+        });
+    }
+})();
+</script>
+{% endblock %}

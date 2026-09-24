@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+{% block title %}{{ ticket.ticket_number }} — Beyond2U IT Helpdesk{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Main Ticket Content -->
+    <div class="col-lg-8 mb-4">
+        <nav aria-label="breadcrumb" class="mb-3">
+            <ol class="breadcrumb small">
+                <li class="breadcrumb-item"><a href="{{ url_for('client.dashboard') }}" class="text-decoration-none">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('client.ticket_list') }}" class="text-decoration-none">My Tickets</a></li>
+                <li class="breadcrumb-item active" aria-current="page">{{ ticket.ticket_number }}</li>
+            </ol>
+        </nav>
+
+        <div class="card mb-4">
+            <div class="card-header border-0 pb-0">
+                <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                    <div>
+                        <span class="badge bg-secondary font-mono mb-2">{{ ticket.ticket_number }}</span>
+                        <h1 class="h4 mb-1 fw-bold">{{ ticket.subject }}</h1>
+                    </div>
+                    <div class="d-flex gap-2 flex-wrap align-items-center">
+                        {% set sc = ticket.status.value | lower | replace(' ', '-') %}
+                        <span class="badge-status badge-{{ sc }}">{{ ticket.status.value }}</span>
+                        {% if ticket.priority %}
+                        <span class="badge-status badge-{{ ticket.priority.value | lower }}">{{ ticket.priority.value }}</span>
+                        {% endif %}
+                        {% if ticket.sla_state %}
+                        {% set sla_class = ticket.sla_state.value | lower | replace(' ', '-') %}
+                        <span class="badge-status badge-sla-{{ sla_class }}">SLA: {{ ticket.sla_state.value }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <h2 class="h6 text-muted uppercase fw-bold mb-2">Description</h2>
+                <div class="p-3 bg-body-tertiary rounded-3 border" style="white-space: pre-wrap; word-wrap: break-word;">{{ ticket.description }}</div>
+
+                {% if ticket.resolution_summary %}
+                <h2 class="h6 text-muted uppercase fw-bold mt-4 mb-2">Resolution Summary</h2>
+                <div class="p-3 rounded-3 border border-success-subtle bg-success-subtle text-success-emphasis" style="white-space: pre-wrap;">{{ ticket.resolution_summary }}</div>
+                {% endif %}
+
+                <!-- Attachments Section -->
+                <div class="mt-4 pt-3 border-top">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <h2 class="h6 text-muted uppercase fw-bold mb-0">Attachments & Screenshots</h2>
+                        {% if ticket.status.value not in ['Resolved', 'Closed'] %}
+                        <button type="button" class="btn btn-outline-primary btn-sm rounded-pill" data-bs-toggle="collapse" data-bs-target="#clientAttachForm">
+                            + Add File / Screenshot
+                        </button>
+                        {% endif %}
+                    </div>
+
+                    <!-- Client Attach Form Collapse -->
+                    <div class="collapse mb-3" id="clientAttachForm">
+                        <div class="card p-3 bg-body-tertiary border rounded-3">
+                            <form method="POST" action="{{ url_for('client.attach_file', ticket_number=ticket.ticket_number) }}" enctype="multipart/form-data">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <div class="mb-2">
+                                    <input type="file" name="attachments" class="form-control form-control-sm" multiple required
+                                           accept=".png,.jpg,.jpeg,.gif,.webp,.pdf,.txt,.log,.docx,.xlsx,.csv">
+                                    <div class="form-text small">Upload error screenshots, logs, or documents (max 8 MB).</div>
+                                </div>
+                                <button type="submit" class="btn btn-primary btn-sm px-3 rounded-pill fw-semibold">Upload File</button>
+                            </form>
+                        </div>
+                    </div>
+
+                    {% if ticket.attachments %}
+                    <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-2">
+                        {% for att in ticket.attachments %}
+                        <div class="col">
+                            <div class="card h-100 border rounded-3 p-2 bg-body-tertiary shadow-xs">
+                                {% if att.is_image %}
+                                <a href="{{ url_for('main.download_attachment', attachment_id=att.id) }}" target="_blank" class="d-block mb-1 overflow-hidden rounded text-center bg-dark-subtle" style="height: 100px;">
+                                    <img src="{{ url_for('main.download_attachment', attachment_id=att.id) }}" alt="{{ att.original_filename }}" class="img-fluid h-100 object-fit-cover" loading="lazy">
+                                </a>
+                                {% else %}
+                                <div class="d-flex align-items-center justify-content-center bg-secondary-subtle rounded mb-1" style="height: 100px;">
+                                    <span class="fs-1">📄</span>
+                                </div>
+                                {% endif %}
+                                <div class="small fw-semibold text-truncate" title="{{ att.original_filename }}">{{ att.original_filename }}</div>
+                                <div class="d-flex justify-content-between align-items-center text-muted" style="font-size: 0.72rem;">
+                                    <span>{{ att.formatted_size }}</span>
+                                    <a href="{{ url_for('main.download_attachment', attachment_id=att.id, download=1) }}" class="text-decoration-none fw-semibold">Download &darr;</a>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted small mb-0">No files attached to this ticket.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Timeline -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="h6 mb-0 fw-bold">Ticket Timeline & History</h2>
+            </div>
+            <div class="card-body">
+                {% if events %}
+                <ul class="timeline">
+                    {% for event in events %}
+                    <li class="timeline-item">
+                        <div class="timeline-time">
+                            {{ to_local_time(event.created_at).strftime('%d %b %Y, %H:%M:%S') if event.created_at else '' }}
+                            {% if event.actor %}
+                            — <span class="fw-semibold text-body">{{ event.actor.full_name }}</span>
+                            {% else %}
+                            — <span class="fw-semibold text-muted">System (AI Engine)</span>
+                            {% endif %}
+                        </div>
+                        <div class="timeline-content">
+                            <strong>{{ event.event_type.value | replace('_', ' ') | title }}</strong>
+                            {% if event.data %}
+                            <div class="small text-muted mt-1">
+                                {% for key, value in event.data.items() if value and key not in ['previous_hash'] %}
+                                <span class="me-3"><strong>{{ key | replace('_', ' ') | title }}:</strong> {{ value }}</span>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="text-muted small mb-0">No timeline events recorded yet.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Sidebar Metadata -->
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header"><h2 class="h6 mb-0 fw-bold">Ticket Details</h2></div>
+            <div class="card-body">
+                <dl class="mb-0">
+                    <dt class="small text-muted">Category</dt>
+                    <dd class="fw-semibold"><span class="badge bg-secondary">{{ ticket.category.value if ticket.category else 'Pending Classification' }}</span></dd>
+
+                    <dt class="small text-muted mt-3">Assigned Technician</dt>
+                    <dd class="fw-semibold">{{ ticket.assignee.full_name if ticket.assignee else 'Unassigned' }}</dd>
+
+                    <dt class="small text-muted mt-3">SLA Deadline</dt>
+                    <dd class="font-mono small">
+                        {% if ticket.sla_deadline %}
+                        {{ to_local_time(ticket.sla_deadline).strftime('%d %b %Y, %H:%M') }}
+                        {% else %}—{% endif %}
+                    </dd>
+
+                    <dt class="small text-muted mt-3">Created</dt>
+                    <dd class="font-mono small">{{ to_local_time(ticket.created_at).strftime('%d %b %Y, %H:%M') if ticket.created_at else '—' }}</dd>
+
+                    <dt class="small text-muted mt-3">Last Updated</dt>
+                    <dd class="font-mono small">{{ to_local_time(ticket.updated_at).strftime('%d %b %Y, %H:%M') if ticket.updated_at else '—' }}</dd>
+
+                    {% if ticket.prediction %}
+                    <dt class="small text-muted mt-3">AI Prediction Confidence</dt>
+                    <dd class="small">
+                        {% if ticket.prediction.category_confidence %}
+                        Category: <strong>{{ "%.1f" | format(ticket.prediction.category_confidence * 100) }}%</strong><br>
+                        {% endif %}
+                        {% if ticket.prediction.priority_confidence %}
+                        Priority: <strong>{{ "%.1f" | format(ticket.prediction.priority_confidence * 100) }}%</strong>
+                        {% endif %}
+                        {% if ticket.prediction.is_category_overridden or ticket.prediction.is_priority_overridden %}
+                        <br><span class="badge bg-warning text-dark mt-1">Overridden by Admin</span>
+                        {% endif %}
+                    </dd>
+                    {% endif %}
+                </dl>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

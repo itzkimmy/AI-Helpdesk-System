@@ -1,0 +1,512 @@
+{% extends "base.html" %}
+{% block title %}SLA & Ticket Calendar — Beyond2U IT Helpdesk{% endblock %}
+
+{% block extra_head %}
+<style>
+    .calendar-container {
+        display: grid;
+        grid-template-columns: 1fr 340px;
+        gap: 1.5rem;
+        align-items: start;
+    }
+    @media (max-width: 992px) {
+        .calendar-container {
+            grid-template-columns: 1fr;
+        }
+    }
+    .calendar-card {
+        background: var(--hd-surface);
+        border: 1px solid var(--hd-border);
+        border-radius: var(--hd-radius-xl);
+        overflow: hidden;
+        box-shadow: var(--hd-shadow-sm);
+    }
+    .calendar-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid var(--hd-border);
+        background: var(--hd-surface-raised);
+    }
+    .cal-nav-btn {
+        width: 34px;
+        height: 34px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: var(--hd-radius-md);
+        border: 1px solid var(--hd-border);
+        background: var(--hd-surface);
+        color: var(--hd-text);
+        cursor: pointer;
+        transition: all 0.15s ease;
+    }
+    .cal-nav-btn:hover {
+        background: var(--hd-border-subtle);
+        border-color: var(--hd-primary-light);
+        color: var(--hd-primary);
+    }
+    .weekdays-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        background: var(--hd-border-subtle);
+        border-bottom: 1px solid var(--hd-border);
+        text-align: center;
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        color: var(--hd-text-muted);
+        text-transform: uppercase;
+        padding: 0.6rem 0;
+    }
+    .days-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        grid-auto-rows: minmax(105px, 1fr);
+        background: var(--hd-border);
+        gap: 1px;
+    }
+    .day-cell {
+        background: var(--hd-surface);
+        padding: 0.5rem;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        cursor: pointer;
+        transition: background 0.15s ease;
+    }
+    .day-cell:hover {
+        background: var(--hd-border-subtle);
+    }
+    .day-cell.other-month {
+        opacity: 0.4;
+        background: var(--hd-border-subtle);
+    }
+    .day-cell.selected {
+        outline: 2px solid var(--hd-primary);
+        outline-offset: -2px;
+        background: var(--hd-gradient-subtle);
+    }
+    .day-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.35rem;
+    }
+    .day-number {
+        font-size: 0.82rem;
+        font-weight: 600;
+        width: 24px;
+        height: 24px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        color: var(--hd-text);
+    }
+    .day-cell.today .day-number {
+        background: var(--hd-primary);
+        color: #ffffff;
+        font-weight: 700;
+    }
+    .day-events {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        overflow-y: auto;
+        max-height: 80px;
+    }
+    .cal-event-pill {
+        font-size: 0.7rem;
+        padding: 2px 6px;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        font-weight: 600;
+        border-left: 3px solid transparent;
+        text-decoration: none;
+        transition: transform 0.1s ease;
+    }
+    .cal-event-pill:hover {
+        transform: scale(1.02);
+    }
+    .cal-event-critical {
+        background: var(--hd-critical-bg);
+        color: var(--hd-critical);
+        border-left-color: var(--hd-critical);
+    }
+    .cal-event-high {
+        background: var(--hd-high-bg);
+        color: var(--hd-high);
+        border-left-color: var(--hd-high);
+    }
+    .cal-event-medium {
+        background: var(--hd-medium-bg);
+        color: var(--hd-medium);
+        border-left-color: var(--hd-medium);
+    }
+    .cal-event-low {
+        background: var(--hd-low-bg);
+        color: var(--hd-low);
+        border-left-color: var(--hd-low);
+    }
+    .cal-event-resolved {
+        background: var(--hd-success-bg);
+        color: var(--hd-success);
+        border-left-color: var(--hd-success);
+    }
+
+    /* Sidebar Inspector */
+    .inspector-card {
+        background: var(--hd-surface);
+        border: 1px solid var(--hd-border);
+        border-radius: var(--hd-radius-xl);
+        padding: 1.25rem;
+        box-shadow: var(--hd-shadow-sm);
+        position: sticky;
+        top: 80px;
+    }
+    .inspector-item {
+        border: 1px solid var(--hd-border);
+        border-radius: var(--hd-radius-lg);
+        padding: 0.85rem;
+        margin-bottom: 0.75rem;
+        background: var(--hd-surface-raised);
+        transition: border-color 0.15s ease;
+    }
+    .inspector-item:hover {
+        border-color: var(--hd-primary-light);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header mb-4">
+    <div>
+        <h1 class="h3 mb-1">SLA & Ticket Calendar</h1>
+        <p class="text-muted small mb-0">Interactive schedule of upcoming resolution deadlines, ticket milestones, and SLA urgency</p>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="jumpToday()">
+            Today
+        </button>
+    </div>
+</div>
+
+<!-- Calendar KPI Metric Summary Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="card p-3 border-0 shadow-sm" style="border-radius: var(--hd-radius-lg); background: var(--hd-surface);">
+            <div class="text-muted small fw-semibold text-uppercase" style="font-size: 0.7rem; letter-spacing: 0.5px;">Active Deadlines</div>
+            <div class="h4 fw-bold mb-0 mt-1" id="stat-total-deadlines">—</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card p-3 border-0 shadow-sm" style="border-radius: var(--hd-radius-lg); background: var(--hd-critical-bg);">
+            <div class="text-danger small fw-semibold text-uppercase" style="font-size: 0.7rem; letter-spacing: 0.5px;">Critical / High Urgency</div>
+            <div class="h4 fw-bold text-danger mb-0 mt-1" id="stat-critical-count">—</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card p-3 border-0 shadow-sm" style="border-radius: var(--hd-radius-lg); background: var(--hd-warning-bg);">
+            <div class="text-warning-emphasis small fw-semibold text-uppercase" style="font-size: 0.7rem; letter-spacing: 0.5px;">Approaching SLA</div>
+            <div class="h4 fw-bold text-warning-emphasis mb-0 mt-1" id="stat-approaching-count">—</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card p-3 border-0 shadow-sm" style="border-radius: var(--hd-radius-lg); background: var(--hd-success-bg);">
+            <div class="text-success small fw-semibold text-uppercase" style="font-size: 0.7rem; letter-spacing: 0.5px;">Resolved Milestones</div>
+            <div class="h4 fw-bold text-success mb-0 mt-1" id="stat-resolved-count">—</div>
+        </div>
+    </div>
+</div>
+
+<!-- Main Calendar Layout -->
+<div class="calendar-container">
+    
+    <!-- Left: Month View Calendar Card -->
+    <div class="calendar-card">
+        <!-- Nav header -->
+        <div class="calendar-header">
+            <div class="d-flex align-items-center gap-2">
+                <button class="cal-nav-btn" onclick="prevMonth()" aria-label="Previous Month">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+                </button>
+                <h2 class="h5 fw-bold mb-0 px-2" id="calendar-month-year" style="min-width: 180px; text-align: center;"></h2>
+                <button class="cal-nav-btn" onclick="nextMonth()" aria-label="Next Month">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+                </button>
+            </div>
+            
+            <!-- Filter Dropdown -->
+            <div class="d-flex align-items-center gap-2">
+                <select id="cal-filter-select" class="form-select form-select-sm" style="width: auto;" onchange="renderCalendar()">
+                    <option value="all">All Events</option>
+                    <option value="critical">Critical & High</option>
+                    <option value="approaching">Approaching SLA</option>
+                    <option value="resolved">Resolved</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Weekday Headers -->
+        <div class="weekdays-grid">
+            <div>Sun</div>
+            <div>Mon</div>
+            <div>Tue</div>
+            <div>Wed</div>
+            <div>Thu</div>
+            <div>Fri</div>
+            <div>Sat</div>
+        </div>
+
+        <!-- Day Cells Grid -->
+        <div class="days-grid" id="days-grid">
+            <!-- Rendered by JS -->
+        </div>
+    </div>
+
+    <!-- Right: Day Detail Inspector -->
+    <div class="inspector-card">
+        <div class="d-flex align-items-center justify-content-between pb-2 mb-3 border-bottom">
+            <h3 class="h6 fw-bold mb-0" id="inspector-date-title">Selected Date</h3>
+            <span class="badge bg-secondary-subtle text-secondary" id="inspector-event-count">0 Events</span>
+        </div>
+        
+        <div id="inspector-event-list" style="max-height: 480px; overflow-y: auto;">
+            <!-- Rendered by JS -->
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let currentYear = new Date().getFullYear();
+let currentMonth = new Date().getMonth(); // 0-indexed
+let selectedDateStr = new Date().toISOString().split('T')[0];
+let eventsData = [];
+
+// Fetch calendar events from API
+async function loadCalendarEvents() {
+    try {
+        const response = await fetch('{{ url_for("main.calendar_events_api") }}');
+        if (response.ok) {
+            eventsData = await response.json();
+            updateMetricsSummary();
+            renderCalendar();
+            showDateDetails(selectedDateStr);
+        }
+    } catch (err) {
+        console.error('Failed to load calendar events:', err);
+    }
+}
+
+function updateMetricsSummary() {
+    const totalDeadlines = eventsData.filter(e => e.type === 'deadline' && e.status !== 'Resolved' && e.status !== 'Closed').length;
+    const criticalCount = eventsData.filter(e => e.priority === 'Critical' || e.priority === 'High').length;
+    const approachingCount = eventsData.filter(e => e.sla_state === 'Approaching Deadline' || e.sla_state === 'Breached').length;
+    const resolvedCount = eventsData.filter(e => e.status === 'Resolved' || e.status === 'Closed').length;
+
+    document.getElementById('stat-total-deadlines').textContent = totalDeadlines;
+    document.getElementById('stat-critical-count').textContent = criticalCount;
+    document.getElementById('stat-approaching-count').textContent = approachingCount;
+    document.getElementById('stat-resolved-count').textContent = resolvedCount;
+}
+
+function renderCalendar() {
+    const monthYearEl = document.getElementById('calendar-month-year');
+    const daysGridEl = document.getElementById('days-grid');
+    const filterValue = document.getElementById('cal-filter-select').value;
+
+    const monthNames = [
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"
+    ];
+    monthYearEl.textContent = `${monthNames[currentMonth]} ${currentYear}`;
+
+    daysGridEl.innerHTML = '';
+
+    const firstDayIndex = new Date(currentYear, currentMonth, 1).getDay();
+    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+    const daysInPrevMonth = new Date(currentYear, currentMonth, 0).getDate();
+
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    // Previous month filler days
+    for (let i = firstDayIndex - 1; i >= 0; i--) {
+        const prevDayNum = daysInPrevMonth - i;
+        const prevDate = new Date(currentYear, currentMonth - 1, prevDayNum);
+        const prevDateStr = formatDate(prevDate);
+        
+        const cell = createDayCell(prevDayNum, prevDateStr, true);
+        daysGridEl.appendChild(cell);
+    }
+
+    // Current month days
+    for (let day = 1; day <= daysInMonth; day++) {
+        const thisDate = new Date(currentYear, currentMonth, day);
+        const thisDateStr = formatDate(thisDate);
+        
+        const cell = createDayCell(day, thisDateStr, false, thisDateStr === todayStr, thisDateStr === selectedDateStr);
+        daysGridEl.appendChild(cell);
+    }
+
+    // Next month filler days (fill up to 35 or 42 grid cells)
+    const totalCellsSoFar = firstDayIndex + daysInMonth;
+    const remainingCells = (totalCellsSoFar <= 35 ? 35 : 42) - totalCellsSoFar;
+    for (let day = 1; day <= remainingCells; day++) {
+        const nextDate = new Date(currentYear, currentMonth + 1, day);
+        const nextDateStr = formatDate(nextDate);
+        
+        const cell = createDayCell(day, nextDateStr, true);
+        daysGridEl.appendChild(cell);
+    }
+}
+
+function formatDate(d) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+}
+
+function createDayCell(dayNum, dateStr, isOtherMonth, isToday = false, isSelected = false) {
+    const cell = document.createElement('div');
+    cell.className = `day-cell ${isOtherMonth ? 'other-month' : ''} ${isToday ? 'today' : ''} ${isSelected ? 'selected' : ''}`;
+    cell.dataset.date = dateStr;
+
+    cell.onclick = () => {
+        document.querySelectorAll('.day-cell').forEach(c => c.classList.remove('selected'));
+        cell.classList.add('selected');
+        selectedDateStr = dateStr;
+        showDateDetails(dateStr);
+    };
+
+    const header = document.createElement('div');
+    header.className = 'day-header';
+    header.innerHTML = `<span class="day-number">${dayNum}</span>`;
+    cell.appendChild(header);
+
+    const eventsContainer = document.createElement('div');
+    eventsContainer.className = 'day-events';
+
+    const filterValue = document.getElementById('cal-filter-select').value;
+    const dayEvents = eventsData.filter(e => {
+        if (e.date !== dateStr) return false;
+        if (filterValue === 'critical') return e.priority === 'Critical' || e.priority === 'High';
+        if (filterValue === 'approaching') return e.sla_state === 'Approaching Deadline' || e.sla_state === 'Breached';
+        if (filterValue === 'resolved') return e.status === 'Resolved' || e.status === 'Closed';
+        return true;
+    });
+
+    dayEvents.slice(0, 3).forEach(evt => {
+        const pill = document.createElement('div');
+        const prioClass = evt.status === 'Resolved' ? 'cal-event-resolved' : `cal-event-${evt.priority.toLowerCase()}`;
+        pill.className = `cal-event-pill ${prioClass}`;
+        pill.title = `${evt.id} - ${evt.title} (${evt.priority})`;
+        pill.innerHTML = `<span class="font-mono">${evt.id.split('-').slice(-1)[0]}</span> ${evt.title}`;
+        eventsContainer.appendChild(pill);
+    });
+
+    if (dayEvents.length > 3) {
+        const morePill = document.createElement('div');
+        morePill.className = 'text-muted fw-bold ps-1';
+        morePill.style.fontSize = '0.65rem';
+        morePill.textContent = `+${dayEvents.length - 3} more`;
+        eventsContainer.appendChild(morePill);
+    }
+
+    cell.appendChild(eventsContainer);
+    return cell;
+}
+
+function showDateDetails(dateStr) {
+    const titleEl = document.getElementById('inspector-date-title');
+    const countEl = document.getElementById('inspector-event-count');
+    const listEl = document.getElementById('inspector-event-list');
+
+    const dateObj = new Date(dateStr + 'T00:00:00');
+    const options = { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' };
+    titleEl.textContent = dateObj.toLocaleDateString('en-GB', options);
+
+    const dayEvents = eventsData.filter(e => e.date === dateStr);
+    countEl.textContent = `${dayEvents.length} Event${dayEvents.length === 1 ? '' : 's'}`;
+
+    if (dayEvents.length === 0) {
+        listEl.innerHTML = `
+            <div class="text-center py-4 text-muted">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="mb-2 opacity-50"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                <div class="small fw-semibold">No scheduled deadlines</div>
+                <div class="small text-muted" style="font-size: 0.75rem;">No ticket SLAs due on this date</div>
+            </div>
+        `;
+        return;
+    }
+
+    listEl.innerHTML = '';
+    dayEvents.forEach(evt => {
+        const item = document.createElement('div');
+        item.className = 'inspector-item';
+        
+        const prioBadgeClass = evt.status === 'Resolved' ? 'bg-success-subtle text-success' : 
+                               evt.priority === 'Critical' ? 'bg-danger-subtle text-danger' :
+                               evt.priority === 'High' ? 'bg-warning-subtle text-warning-emphasis' : 'bg-secondary-subtle text-secondary';
+        
+        item.innerHTML = `
+            <div class="d-flex justify-content-between align-items-start mb-1.5">
+                <span class="font-mono fw-bold small text-primary">${evt.id}</span>
+                <span class="badge ${prioBadgeClass}" style="font-size: 0.65rem;">${evt.priority}</span>
+            </div>
+            <div class="fw-semibold small text-truncate mb-1">${evt.title}</div>
+            <div class="text-muted small d-flex justify-content-between align-items-center mb-2" style="font-size: 0.72rem;">
+                <span>${evt.category || 'General'}</span>
+                <span>Due: <strong>${evt.time || '23:59'}</strong></span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center pt-2 border-top">
+                <span class="badge bg-light text-dark border" style="font-size: 0.68rem;">${evt.status}</span>
+                <a href="${evt.url}" class="btn btn-sm btn-outline-primary py-0.5 px-2" style="font-size: 0.75rem;">
+                    View Ticket
+                </a>
+            </div>
+        `;
+        listEl.appendChild(item);
+    });
+}
+
+function prevMonth() {
+    currentMonth--;
+    if (currentMonth < 0) {
+        currentMonth = 11;
+        currentYear--;
+    }
+    renderCalendar();
+}
+
+function nextMonth() {
+    currentMonth++;
+    if (currentMonth > 11) {
+        currentMonth = 0;
+        currentYear++;
+    }
+    renderCalendar();
+}
+
+function jumpToday() {
+    const today = new Date();
+    currentYear = today.getFullYear();
+    currentMonth = today.getMonth();
+    selectedDateStr = formatDate(today);
+    renderCalendar();
+    showDateDetails(selectedDateStr);
+}
+
+document.addEventListener('DOMContentLoaded', loadCalendarEvents);
+</script>
+{% endblock %}

@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}SLA Policies — Beyond2U IT Helpdesk{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="h3 mb-1">SLA Policies</h1>
+        <p class="text-muted small mb-0">Service Level Agreement resolution targets and automated warning thresholds</p>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-helpdesk mb-0" aria-label="SLA Policies">
+                <thead>
+                    <tr>
+                        <th>Priority Level</th>
+                        <th>Target Resolution Hours</th>
+                        <th>Warning Threshold</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in policies %}
+                    <tr>
+                        <td class="fw-bold"><span class="badge-status badge-{{ p.priority|lower }}">{{ p.priority }}</span></td>
+                        <td class="font-mono fw-semibold">{{ p.resolution_hours }} hours</td>
+                        <td class="font-mono text-muted">{{ p.warning_threshold_pct }}% of deadline</td>
+                        <td><a href="{{ url_for('admin.edit_sla_policy', policy_id=p.id) }}" class="btn btn-sm btn-outline-primary">Edit Policy</a></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
