@@ -83,6 +83,9 @@ def upgrade():
             batch_op.create_index(batch_op.f('ix_ticket_attachments_ticket_id'), ['ticket_id'], unique=False)
             batch_op.create_index(batch_op.f('ix_ticket_attachments_uploader_id'), ['uploader_id'], unique=False)
 
+    if '_alembic_tmp_notifications' in existing_tables:
+        op.drop_table('_alembic_tmp_notifications')
+
     if 'notifications' in existing_tables:
         existing_cols = [c['name'] for c in inspector.get_columns('notifications')]
         existing_indexes = [i['name'] for i in inspector.get_indexes('notifications')]
