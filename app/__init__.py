@@ -118,6 +118,7 @@ def _register_error_handlers(app):
 
     @app.errorhandler(500)
     def internal_error(e):
+        app.logger.error('Unhandled 500 error: %s', e, exc_info=True)
         db.session.rollback()
         return render_template('errors/500.html'), 500
 
