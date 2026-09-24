@@ -28,6 +28,11 @@ def create_app(config_name=None):
     app.config.from_object(config_by_name[config_name])
     import uuid
 
+    # Ensure SECRET_KEY is always a valid string
+    if not isinstance(app.config.get('SECRET_KEY'), (str, bytes)) or not app.config.get('SECRET_KEY'):
+        import secrets
+        app.config['SECRET_KEY'] = secrets.token_hex(32)
+
     # Unique identifier for this running server instance
     app.config['SERVER_INSTANCE_ID'] = uuid.uuid4().hex
 

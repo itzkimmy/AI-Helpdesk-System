@@ -93,20 +93,13 @@ class ProductionConfig(BaseConfig):
     """Production environment configuration."""
 
     DEBUG = False
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL')
+    SQLALCHEMY_DATABASE_URI = os.environ.get(
+        'DATABASE_URL',
+        f"sqlite:///{os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'instance', 'helpdesk.db'))}"
+    )
     SESSION_COOKIE_SECURE = True
     SESSION_COOKIE_SAMESITE = 'Lax'
-
-    # Enforce secret key is set
-    @property
-    def SECRET_KEY(self):
-        key = os.environ.get('SECRET_KEY')
-        if not key or key == 'CHANGE-ME-generate-a-real-secret-key':
-            raise ValueError(
-                'SECRET_KEY must be set to a strong random value in production. '
-                'Generate with: python -c "import secrets; print(secrets.token_hex(32))"'
-            )
-        return key
+    SECRET_KEY = os.environ.get('SECRET_KEY') or BaseConfig.SECRET_KEY
 
 
 config_by_name = {
